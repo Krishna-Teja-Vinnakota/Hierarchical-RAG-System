@@ -1,285 +1,89 @@
-# Adaptive Study Guide - Hierarchical RAG System
+# Adaptive Study Guide
 
-An AI-powered question-answering system for Operating Systems textbook using hierarchical retrieval-augmented generation (H-RAG).
+## Overview
+The Adaptive Study Guide is an AI-powered question-answering system designed to help users navigate and understand complex textbook content, specifically Operating Systems. It employs a **Hierarchical Retrieval-Augmented Generation (H-RAG)** architecture that processes information at two levels: high-level chapter summaries and detailed text chunks. The system intelligently routes queries between these levels and utilizes a **Graph RAG** approach with Neo4j to understand relationships between concepts, ensuring accurate answers for both simple definitions and complex comparative questions.
 
-## 🎯 Features
+This repository contains the full pipeline for indexing PDF content, managing vector and graph databases, and running the interactive Streamlit application.
 
-- ✅ **Hierarchical Indexing**: Two-level granularity (chapter summaries + detailed chunks)
-- ✅ **Smart Query Routing**: Automatically classifies queries as SIMPLE or COMPLEX
-- ✅ **Metadata-Based Filtering**: Efficient chapter-level filtering for complex queries
-- ✅ **Rate Limit Handling**: Automatic retry logic with exponential backoff
-- ✅ **Cached Progress**: Resume indexing from where you left off
+## Technologies
 
-## 🏗️ Architecture
-```
-User Query
-    ↓
-Query Router (SIMPLE/COMPLEX Classification)
-    ↓
-Retrieval Engine
-    ├── SIMPLE: Level 2 Search + Graph Enrichment
-    └── COMPLEX: Neo4j Graph Traversal → Enhanced Query → Filtered Search
-    ↓
-Answer Generator (Gemini)
-    ↓
-Formatted Answer + Sources
-```
+*   **UI / App**: Streamlit (Python)
+*   **AI / LLM**: Google Gemini 2.0 Flash (via `google-genai` / Vertex AI)
+*   **Persistence**:
+    *   **Vector Database**: Pinecone (Serverless)
+    *   **Graph Database**: Neo4j (AuraDB or Local)
+    *   **Local Cache**: JSON files (`document_summaries_cache.json`, `document_details_cache.json`)
+*   **PDF Processing**: `pypdf`
 
-## 📊 Technology Stack
+## Prerequisites
 
-| Component | Technology |
-|-----------|-----------|
-| **LLM** | Gemini 2.0 Flash Experimental (Vertex AI) |
-| **Embeddings** | text-embedding-004 (Vertex AI) |
-| **Vector Database** | Pinecone (Serverless) |
-| **Graph Database** | Neo4j (AuraDB or Local) |
-| **Frontend** | Streamlit |
-| **PDF Processing** | PyPDF |
-| **Language** | Python 3.11+ |
+*   **Python 3.11** or higher
+*   **pip** package manager
+*   **Git** (for cloning repository)
+*   **Google Cloud Platform** account with Vertex AI enabled and a service account JSON key
+*   **Pinecone** account and API Key
+*   **Neo4j** Database instance (AuraDB Free Tier is sufficient)
 
-## 🚀 Setup Instructions
+## Usage
 
-### Prerequisites
-
-- Python 3.11 or higher
-- Google Cloud Platform account with Vertex AI enabled
-- Pinecone account
-- Neo4j Database (AuraDB Free Tier recommended)
-- Service account JSON key with Vertex AI permissions
-
-### Installation
-
-1. **Clone the repository**
+### Clone the repository
 ```bash
-   cd Rag_project
+git clone <your-repository-url>
+cd <your-repo-folder>
 ```
 
-2. **Create virtual environment**
+### Create and activate a virtual environment (recommended)
 ```bash
-   python -m venv venv_rag
-   
-   # Windows
-   venv_rag\Scripts\activate
-   
-   # Mac/Linux
-   source venv_rag/bin/activate
+# Windows
+python -m venv .venv
+.\.venv\Scripts\activate
+
+# Linux / macOS
+python -m venv .venv
+source .venv/bin/activate
 ```
 
-3. **Install dependencies**
+### Install required packages
+Install the dependencies using the requirements file:
 ```bash
-   pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
-4. **Configure environment variables**
-   
-   Create `.env` file in root directory:
-```env
-   VERTEX_AI_SERVICE_ACCOUNT_PATH=gen-lang-client.json
-   GOOGLE_CLOUD_PROJECT=your-project-id
-   PINECONE_API_KEY=your-pinecone-api-key
-   GOOGLE_CLOUD_REGION=us-central1
-   
-   # Neo4j Configuration
-   NEO4J_URI=neo4j+s://your-instance.databases.neo4j.io
-   NEO4J_USER=neo4j
-   NEO4J_PASSWORD=your-password
-```
+### Configure credentials and environment
+Create a `.env` file in the root directory and set the following required variables:
 
-5. **Add your PDF**
-   
-   Place your PDF in the `data/` folder
+*   `VERTEX_AI_SERVICE_ACCOUNT_PATH` — Path to your Google service account JSON file
+*   `GOOGLE_CLOUD_PROJECT` — Your GCP Project ID
+*   `GOOGLE_CLOUD_REGION` — GCP Region (e.g., `us-central1`)
+*   `PINECONE_API_KEY` — Your Pinecone API Key
+*   `NEO4J_URI` — URI for your Neo4j instance (e.g., `neo4j+s://...`)
+*   `NEO4J_USER` — Neo4j username (usually `neo4j`)
+*   `NEO4J_PASSWORD` — Neo4j password
 
-## 📖 Usage
-
-### Phase 1: Indexing (Run Once)
-
-**Step 1: Create Level 1 Index (Chapter Summaries)**
-```bash
-python level1_indexer.py
-```
-- Extracts chapters from PDF
-- Generates summaries using Gemini
-- Stores in Pinecone with `type="summary"`
-
-**Step 2: Create Level 2 Index (Detailed Chunks)**
-```bash
-python level2_indexer.py
-```
-- Chunks each chapter into smaller pieces
-- Stores in Pinecone with `type="detail"`
-
-### Phase 2: Querying (Run Multiple Times)
-
-**Start Web Interface** (Recommended)
+### Start the app
+To run the main interactive interface:
 ```bash
 streamlit run streamlit_rag.py
 ```
 
-**CLI Interactive Mode**
-```bash
-python main_query.py
-```
+Open the local Streamlit URL (printed in the terminal, usually `http://localhost:8501`). You can then enter queries to interact with the indexed content.
 
-**Single Query Mode**
-```bash
-python main_query.py "What is a process?"
-```
+## Output and persistence
 
-**Demo Mode**
-```bash
-python main_query.py demo
-```
+*   **`document_summaries_cache.json`**: Local cache of generated chapter summaries (Level 1 index).
+*   **`document_details_cache.json`**: Local cache of detailed text chunks (Level 2 index).
+*   **Pinecone Index**: Stores vector embeddings for both summaries and detailed chunks for semantic retrieval.
+*   **Neo4j Graph**: Stores extracted entities and their relationships to support complex query reasoning.
 
-## 🎓 Example Queries
+## Example quick usage
 
-### SIMPLE Queries (Direct Detail Search)
-```
-"What is a thread?"
-"Define semaphore"
-"Explain virtual memory"
-"What is deadlock?"
-```
-
-### COMPLEX Queries (Hierarchical Search)
-```
-"Compare processes and threads"
-"What are the differences between paging and segmentation?"
-"How did memory management evolve in operating systems?"
-"Compare Linux and Windows scheduling approaches"
-```
-
-## 🗂️ Project Structure
-```
-Rag_project/
-├── .env                              # Environment configuration
-├── gen-lang-client.json              # Vertex AI service account
-├── requirements.txt                  # Python dependencies
-├── README.md                         # This file
-│
-├── data/                             # PDF storage
-│   └── textbook.pdf
-│
-├── level1_indexer.py                 # Chapter summary indexing
-├── level2_indexer.py                 # Detail chunk indexing
-├── query_router.py                   # Query classification
-├── retrieval_engine.py               # Hierarchical retrieval
-├── answer_generator.py               # Answer generation
-├── main_query.py                     # Main entry point
-│
-├── document_summaries_cache.json     # Level 1 cache
-└── document_details_cache.json       # Level 2 cache
-```
-
-## 🔧 Configuration
-
-### Indexing Settings
-
-**Level 1 (Summaries)**
-- Model: `gemini-2.0-flash-exp`
-- Summary length: 800-1000 characters
-- Delay between requests: 15 seconds
-
-**Level 2 (Details)**
-- Chunk size: 400 words
-- Chunk overlap: 50 words
-- Embedding model: `text-embedding-004`
-
-### Query Settings
-
-- Classification delay: 3 seconds
-- Answer generation delay: 5 seconds
-- Max retries: 3
-- Retry backoff: 15s → 30s → 60s
-
-## 📈 System Metrics
-
-- **Total Vectors**: 1,078
-  - Level 1 (Summaries): 20 vectors
-  - Level 2 (Details): 1,058 vectors
-- **Embedding Dimension**: 768
-- **Index Type**: Pinecone Serverless (AWS us-east-1)
-
-## 🐛 Troubleshooting
-
-### Quota Exceeded Error
-```
-Error: 429 RESOURCE_EXHAUSTED
-```
-**Solution**: System automatically retries with delays. Wait for completion or increase delays in code.
-
-### Model Not Found Error
-```
-Error: 404 NOT_FOUND - Model not found
-```
-**Solution**: Model name is correct for Vertex AI. Ensure:
-- Vertex AI API is enabled in GCP
-- Service account has proper permissions
-- Project has access to Gemini models
-
-### No Chapters Detected
-**Solution**: System tries 3 methods:
-1. TOC + Header scanning (best)
-2. Pattern-based detection (fallback)
-3. Page-based splitting (last resort)
-
-## 📚 How It Works
-
-### Query Classification
-```python
-"What is a thread?" → SIMPLE
-"Compare processes and threads" → COMPLEX
-```
-
-### Retrieval Strategy
-
-**SIMPLE Path:**
-```
-Query → Embedding → Search Level 2 → Top 5 chunks → Answer
-```
-
-**COMPLEX Path:**
-```
-Query → Embedding → Search Level 1 → Extract chapter IDs
-      → Filter Level 2 by chapters → Top 5 chunks → Answer
-```
-
-### Metadata Filtering
-```python
-# Level 1 (Summaries)
-{
-  "type": "summary",
-  "chapter_num": "4",
-  "title": "Chapter 4: Threads"
-}
-
-# Level 2 (Details)
-{
-  "type": "detail",
-  "chapter_num": "4",
-  "chunk_index": 0
-}
-```
-
-## 🎯 Future Enhancements
-
-- [ ] Add caching for repeated queries
-- [ ] Implement conversation history
-- [ ] Support multiple PDFs
-- [ ] Add web interface
-- [ ] Export answers to PDF
-
-## 👤 Author
-
-Harshith Yaranagi Yadav
-- Project: Hierarchical RAG for Educational Content
-- Tech Stack: Vertex AI, Pinecone, Python
-
-## 📄 License
-
-This project is for educational purposes.
-
-## 🙏 Acknowledgments
-
-- Google Vertex AI for Gemini models
-- Pinecone for vector database
-- Operating Systems textbook content
+1.  Clone repo and create a virtual environment.
+2.  Install dependencies with `pip install -r requirements.txt`.
+3.  Place your textbook PDF in the `data/` folder.
+4.  Set up your `.env` file with API keys and credentials.
+5.  **First-time setup**: Run the indexers to process the PDF:
+    ```bash
+    python level1_indexer.py  # Generates summaries
+    python level2_indexer.py  # Generates detailed chunks
+    ```
+6.  Run `streamlit run streamlit_rag.py` and ask a question like "What is the difference between a process and a thread?".
