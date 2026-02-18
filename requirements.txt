@@ -1,0 +1,19 @@
+# Core Dependencies
+python-dotenv==1.0.0
+google-genai==0.2.0
+google-auth==2.23.0
+google-auth-oauthlib==1.1.0
+google-auth-httplib2==0.1.1
+
+# PDF Processing
+pypdf==3.17.0
+
+# Vector Database
+pinecone-client==3.0.0
+
+# Optional but useful
+typing-extensions==4.8.0
+
+# UI and Graph Database
+streamlit==1.28.0
+neo4j==5.14.0
